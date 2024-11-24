@@ -1,0 +1,64 @@
+---
+- name: Deploy Nginx Web Server in Docker
+  hosts: docker
+  become: yes
+  tasks:
+    - name: Install Docker if not present
+      apt:
+        name: docker.io
+        state: present
+        update_cache: yes
+
+    - name: Ensure Docker is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Create directory for Nginx website
+      file:
+        path: /home/yasmin-pup/nginx-website
+        state: directory
+
+    - name: Create the index.html file with custom content
+      copy:
+        dest: /home/yasmin-pup/nginx-website/index.html
+        content: |
+          <html>
+          <head><title>Welcome</title></head>
+          <body>
+          <h1>Hi again!</h1>
+          <p>How is it going so far?</p>
+          </body>
+          </html>
+
+    - name: Create Dockerfile for Nginx
+      copy:
+        dest: /home/yasmin-pup/nginx-website/Dockerfile
+        content: |
+          FROM nginx:latest
+          COPY ./index.html /usr/share/nginx/html/index.html
+
+    - name: Build Docker image
+      community.docker.docker_image:
+        name: my-nginx-image
+        build:
+          path: /home/yasmin-pup/nginx-website
+        source: build
+        state: present
+
+    - name: Start Nginx container
+      community.docker.docker_container:
+        name: my-nginx-container
+        image: my-nginx-image
+        state: started
+        ports:
+          - "8081:80"
+
+    - name: Ensure Docker container is running
+      command: docker ps
+      register: result
+
+    - name: Print Docker container status
+      debug:
+        var: result.stdout_lines

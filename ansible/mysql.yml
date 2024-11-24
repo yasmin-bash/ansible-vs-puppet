@@ -1,0 +1,86 @@
+
+---
+- name: Ensure required Python MySQL modules are installed
+  hosts: controlled-node
+  become: yes
+  tasks:
+    - name: Install Python3 package for MySQL (PyMySQL)
+      apt:
+        name: python3-pymysql
+        state: present
+        update_cache: yes
+
+- name: Install and configure MySQL
+  hosts: database_servers
+  become: yes
+  vars:
+    mysql_root_password: "newpassword"
+  tasks:
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Set MySQL root password
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        host_all: yes
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: yes
+
+    - name: Remove anonymous MySQL users
+      mysql_user:
+        name: ''
+        state: absent
+        host_all: yes
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: yes
+
+    - name: Remove test database
+      mysql_db:
+        name: test
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      ignore_errors: yes
+
+    - name: Update MySQL configuration to enhance security
+      lineinfile:
+        path: /etc/mysql/mysql.conf.d/mysqld.cnf
+        regexp: '^bind-address'
+        line: 'bind-address = 127.0.0.1'
+        state: present
+      notify:
+        - Restart MySQL
+
+    - name: Create a database
+      mysql_db:
+        name: my_database
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+
+    - name: Set up daily backups
+      cron:
+        name: "MySQL Backup"
+        minute: "0"
+        hour: "2"
+        job: "/usr/bin/mysqldump -u root -p{{ mysql_root_password }} my_database > /var/backups/my_database_$(date +\\%F).sql"
+
+  handlers:
+    - name: Restart MySQL
+      service:
+        name: mysql
+        state: restarted

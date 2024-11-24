@@ -1,0 +1,29 @@
+---
+- name: Create user 'student' with password
+  hosts: user
+  become: yes
+  tasks:
+    - name: Install required dependencies for managing passwords
+      apt:
+        name: whois
+        state: present
+        update_cache: yes
+
+    - name: Create the student user
+      user:
+        name: student
+        password: "{{ 'newpassword' | password_hash('sha512') }}"
+        state: present
+        shell: /bin/bash
+
+    - name: Ensure student user can log in via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+        state: present
+
+    - name: Restart SSH service to apply changes
+      service:
+        name: ssh
+        state: restarted
