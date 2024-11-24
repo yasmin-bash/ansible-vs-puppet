@@ -19,7 +19,7 @@ Make sure you have the following installed on your system before proceeding:
 Use the following commands to clone and navigate into the repository:
 
 ```bash
-git clone https://github.com/yasmin-ahmed/ansible-vs-puppet.git
+git clone https://github.com/yasmin-bash/ansible-vs-puppet.git
 cd ansible-vs-puppet
 
 1-Ansible Setup:
@@ -83,4 +83,4 @@ Future Work:
 Author:
 
 Yasmin 
-    GitHub: github.com/yasmin-ahmed
+    GitHub: github.com/yasmin-bash
